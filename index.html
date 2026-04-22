@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CARDIO AI - Risk Predictor</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: rgba(20, 25, 40, 0.6);
+            --border-color: rgba(255, 255, 255, 0.1);
+            --primary: #f43f5e;
+            --primary-hover: #e11d48;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --glow-color: rgba(244, 63, 94, 0.4);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Ambient glowing background blobs */
+        body::before, body::after {
+            content: '';
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            border-radius: 50%;
+            filter: blur(100px);
+            z-index: -1;
+            opacity: 0.5;
+        }
+        body::before {
+            background: rgba(244, 63, 94, 0.2);
+            top: 10%;
+            left: 20%;
+        }
+        body::after {
+            background: rgba(59, 130, 246, 0.2);
+            bottom: 10%;
+            right: 20%;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        header h1 {
+            font-weight: 700;
+            font-size: 2.5rem;
+            background: linear-gradient(to right, #f43f5e, #fb7185);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+        
+        header p {
+            color: var(--text-muted);
+            font-weight: 300;
+        }
+
+        .container {
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 2.5rem;
+            width: 100%;
+            max-width: 800px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            transition: all 0.3s ease;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-left: 0.5rem;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 0.8rem 1.2rem;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            color: var(--text-main);
+            font-family: 'Outfit', sans-serif;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        input::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        input:focus, select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--glow-color);
+            background: rgba(0, 0, 0, 0.4);
+        }
+
+        select option {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+        }
+
+        button {
+            width: 100%;
+            padding: 1.2rem;
+            background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px var(--glow-color);
+            position: relative;
+            overflow: hidden;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px var(--glow-color);
+        }
+        
+        button:active {
+            transform: translateY(1px);
+        }
+
+        /* Loading Spinner inside Button */
+        .spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Result Section */
+        #result-container {
+            display: none;
+            margin-top: 2rem;
+            animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .result-card {
+            padding: 2rem;
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Result Colors */
+        .result-HIGH {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: rgba(239, 68, 68, 0.3);
+            box-shadow: inset 0 0 50px rgba(239, 68, 68, 0.05);
+        }
+        .result-MEDIUM {
+            background: rgba(234, 179, 8, 0.1);
+            border-color: rgba(234, 179, 8, 0.3);
+            box-shadow: inset 0 0 50px rgba(234, 179, 8, 0.05);
+        }
+        .result-LOW {
+            background: rgba(34, 197, 94, 0.1);
+            border-color: rgba(34, 197, 94, 0.3);
+            box-shadow: inset 0 0 50px rgba(34, 197, 94, 0.05);
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 1rem;
+        }
+
+        .risk-score {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+        
+        .alert-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 30px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        .badge-HIGH { background: #ef4444; color: white; }
+        .badge-MEDIUM { background: #eab308; color: #451a03; }
+        .badge-LOW { background: #22c55e; color: #022c22; }
+
+        .result-message {
+            font-size: 1.2rem;
+            font-weight: 400;
+        }
+
+        .reasons-list {
+            margin-top: 1rem;
+            list-style: none;
+        }
+
+        .reasons-list li {
+            margin-bottom: 0.5rem;
+            padding-left: 1.5rem;
+            position: relative;
+            color: var(--text-muted);
+        }
+
+        .reasons-list li::before {
+            content: '•';
+            position: absolute;
+            left: 0;
+            color: currentColor;
+            font-size: 1.2rem;
+            line-height: 1;
+        }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>CARDIO AI</h1>
+        <p>Advanced Machine Learning Risk Predictor</p>
+    </header>
+
+    <div class="container">
+        <form id="prediction-form" onsubmit="event.preventDefault(); predict();">
+            <div class="form-grid">
+                <!-- Column 1 -->
+                <div class="input-group">
+                    <label for="age">Age (Years)</label>
+                    <input type="number" id="age" placeholder="e.g. 55" required min="1" max="120">
+                </div>
+                
+                <div class="input-group">
+                    <label for="bp">Resting Blood Pressure (mm Hg)</label>
+                    <input type="number" id="bp" placeholder="e.g. 120" required min="50" max="250">
+                </div>
+                
+                <div class="input-group">
+                    <label for="chol">Cholesterol (mg/dl)</label>
+                    <input type="number" id="chol" placeholder="e.g. 200" required min="100" max="600">
+                </div>
+                
+                <div class="input-group">
+                    <label for="hr">Max Heart Rate Achieved</label>
+                    <input type="number" id="hr" placeholder="e.g. 150" required min="50" max="250">
+                </div>
+
+                <!-- Column 2 -->
+                <div class="input-group">
+                    <label for="oldpeak">ST Depression (Oldpeak)</label>
+                    <input type="number" id="oldpeak" placeholder="e.g. 1.5" step="0.1" required min="0" max="10">
+                </div>
+                
+                <div class="input-group">
+                    <label for="sex">Sex</label>
+                    <select id="sex">
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                    </select>
+                </div>
+                
+                <div class="input-group">
+                    <label for="cp">Chest Pain Type</label>
+                    <select id="cp">
+                        <option value="Typical angina">Typical angina</option>
+                        <option value="Atypical angina">Atypical angina</option>
+                        <option value="Non-anginal pain">Non-anginal pain</option>
+                    </select>
+                </div>
+                
+                <div class="input-group">
+                    <label for="angina">Exercise Induced Angina</label>
+                    <select id="angina">
+                        <option value="No">No</option>
+                        <option value="Yes">Yes</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label for="fbs">Fasting Blood Sugar</label>
+                    <select id="fbs">
+                        <option value="Lower than 120 mg/ml">Lower than 120 mg/ml</option>
+                        <option value="Greater than 120 mg/ml">Greater than 120 mg/ml</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label for="rest_ecg">Resting ECG</label>
+                    <select id="rest_ecg">
+                        <option value="Normal">Normal</option>
+                        <option value="ST-T wave abnormality">ST-T wave abnormality</option>
+                        <option value="Left ventricular hypertrophy">Left ventricular hypertrophy</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label for="slope">Slope of Peak Exercise ST Segment</label>
+                    <select id="slope">
+                        <option value="Flat">Flat</option>
+                        <option value="Upsloping">Upsloping</option>
+                        <option value="Downsloping">Downsloping</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label for="vessels">Number of Major Vessels</label>
+                    <select id="vessels">
+                        <option value="Zero">Zero</option>
+                        <option value="One">One</option>
+                        <option value="Two">Two</option>
+                        <option value="Three">Three</option>
+                        <option value="Four">Four</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label for="thal">Thalassemia</label>
+                    <select id="thal">
+                        <option value="Normal">Normal</option>
+                        <option value="Fixed Defect">Fixed Defect</option>
+                        <option value="Reversable Defect">Reversable Defect</option>
+                        <option value="No">No</option>
+                    </select>
+                </div>
+            </div>
+
+            <button type="submit" id="submit-btn">
+                <span id="btn-text">Analyze Risk Profile</span>
+                <div id="btn-spinner" class="spinner"></div>
+            </button>
+        </form>
+
+        <div id="result-container">
+            <div id="result-card" class="result-card">
+                <div class="result-header">
+                    <div class="risk-score">Score: <span id="res-risk"></span></div>
+                    <div class="alert-badge" id="res-badge"></div>
+                </div>
+                <div class="result-message" id="res-message"></div>
+                
+                <div id="reasons-container">
+                    <h4 style="margin-bottom: 0.5rem; color: white;">Detected Factors:</h4>
+                    <ul class="reasons-list" id="res-reasons"></ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    async function predict() {
+        const btnText = document.getElementById('btn-text');
+        const btnSpinner = document.getElementById('btn-spinner');
+        const btn = document.getElementById('submit-btn');
+        const resultContainer = document.getElementById('result-container');
+        
+        // Show loading state
+        btn.disabled = true;
+        btnText.style.display = 'none';
+        btnSpinner.style.display = 'block';
+        resultContainer.style.display = 'none';
+
+        const data = {
+            age: Number(document.getElementById("age").value),
+            resting_blood_pressure: Number(document.getElementById("bp").value),
+            cholestoral: Number(document.getElementById("chol").value),
+            Max_heart_rate: Number(document.getElementById("hr").value),
+            oldpeak: Number(document.getElementById("oldpeak").value),
+
+            sex: document.getElementById("sex").value,
+            chest_pain_type: document.getElementById("cp").value,
+            fasting_blood_sugar: document.getElementById("fbs").value,
+            rest_ecg: document.getElementById("rest_ecg").value,
+            exercise_induced_angina: document.getElementById("angina").value,
+            slope: document.getElementById("slope").value,
+            vessels_colored_by_flourosopy: document.getElementById("vessels").value,
+            thalassemia: document.getElementById("thal").value
+        };
+
+        console.log("Sending data:", data);
+
+        try {
+            const res = await fetch("/predict", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(data)
+            });
+
+            const result = await res.json();
+            console.log("API Response:", result);
+
+            if (result.error) {
+                alert("Server Error: " + result.error);
+                return;
+            }
+
+            // Update UI with results
+            document.getElementById('res-risk').textContent = (result.risk * 100).toFixed(1) + '%';
+            
+            const badge = document.getElementById('res-badge');
+            badge.textContent = result.alert;
+            badge.className = 'alert-badge badge-' + result.alert;
+
+            const card = document.getElementById('result-card');
+            card.className = 'result-card result-' + result.alert;
+
+            document.getElementById('res-message').innerHTML = result.message;
+
+            const reasonsContainer = document.getElementById('reasons-container');
+            if (result.reasons && result.reasons.length > 0) {
+                reasonsContainer.style.display = 'block';
+                document.getElementById('res-reasons').innerHTML = 
+                    result.reasons.map(r => `<li>${r}</li>`).join("");
+            } else {
+                reasonsContainer.style.display = 'none';
+            }
+
+            // Show result
+            resultContainer.style.display = 'block';
+
+        } catch (error) {
+            alert("Error connecting to API");
+            console.error(error);
+        } finally {
+            // Restore button state
+            btn.disabled = false;
+            btnText.style.display = 'block';
+            btnSpinner.style.display = 'none';
+        }
+    }
+    </script>
+</body>
+</html>
